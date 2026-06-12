@@ -5,7 +5,7 @@ Show off your PlayStation Network profile — trophy level, platinum/gold/silver
 GitHub READMEs can't run JavaScript, so the "component" is a dynamically generated SVG served by a tiny serverless function. GitHub fetches it like any image; your visitors see live stats.
 
 ```markdown
-![My PSN Card](https://psn-readme-card.vercel.app/api/card?psnId=Renya_Kojima)
+[![My PSN Card](https://psn-readme-card.vercel.app/api/card?psnId=Renya_Kojima&variant=full)](https://github.com/Jacob-SouthernCity/psn-readme-card)
 ```
 
 ## Deploy your own
@@ -31,15 +31,20 @@ Or manually:
    ```
 5. **Add the card to your README**:
    ```markdown
-   ![PSN Card](https://psn-readme-card.vercel.app/api/card?psnId=Renya_Kojima)
+   [![PSN Card](https://psn-readme-card.vercel.app/api/card?psnId=Renya_Kojima)](https://github.com/Jacob-SouthernCity/psn-readme-card)
    ```
 
 ## Options
 
-| Query param | Description                                        | Default   |
-| ----------- | -------------------------------------------------- | --------- |
-| `psnId`     | The PSN online ID to display (**required**)        | —         |
-| `theme`     | One of `default`, `light`, `blue`, `midnight`      | `default` |
+| Query param | Description                                                          | Default   |
+| ----------- | -------------------------------------------------------------------- | --------- |
+| `psnId`     | The PSN online ID to display (**required**)                          | —         |
+| `theme`     | One of `default`, `light`, `blue`, `midnight`                        | `default` |
+| `variant`   | `compact` (slim strip; omits the PS Plus badge), `default`, or `full` (+ 3 most recent trophy titles — ordered by last trophy earned — with per-game trophy counts and completion %; platinum'd games highlighted in platinum) | `default` |
+
+The `default` variant is exactly **467×195** — the same size as a
+[github-readme-stats](https://github.com/anuraghazra/github-readme-stats) stats card, so the two align
+side by side or stacked. `compact` and `full` share the same 467px width.
 
 ## Local development
 

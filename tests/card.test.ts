@@ -7,9 +7,14 @@ import {
   type CardData,
 } from "../lib/psn";
 import { PSN_ID_PATTERN } from "../lib/psnId";
-import { escapeXml, renderCard, renderErrorCard } from "../lib/render";
+import {
+  escapeXml,
+  renderCard,
+  renderErrorCard,
+  resolveVariant,
+} from "../lib/render";
 import { createSingleFlight } from "../lib/singleFlight";
-import { resolveTheme, themeNames } from "../lib/themes";
+import { resolveTheme, themeNames, trophyColors } from "../lib/themes";
 
 const baseData: CardData = {
   onlineId: "Renya_Kojima",
@@ -135,6 +140,98 @@ test("renderCard includes all trophy counts", () => {
   for (const count of ["23", "187", "642", "1,893"]) {
     assert.ok(svg.includes(`>${count}</text>`));
   }
+});
+
+test("unknown variant falls back to default", () => {
+  assert.equal(resolveVariant("comprehensive"), "default");
+  assert.equal(resolveVariant(undefined), "default");
+  assert.equal(resolveVariant("compact"), "compact");
+  assert.equal(resolveVariant("full"), "full");
+});
+
+test("default and compact variants match github-readme-stats sizing", () => {
+  const def = renderCard(baseData, resolveTheme(), "default");
+  assert.ok(def.includes('width="467" height="195"'));
+  const compact = renderCard(baseData, resolveTheme(), "compact");
+  assert.ok(compact.includes('width="467" height="70"'));
+});
+
+const noTrophies = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+
+test("full variant renders recent games with escaped names", () => {
+  const data: CardData = {
+    ...baseData,
+    recentGames: [
+      {
+        name: "ELDEN RING",
+        progress: 71,
+        iconDataUri: null,
+        earnedTrophies: noTrophies,
+      },
+      {
+        name: "<Evil> & Game",
+        progress: 250,
+        iconDataUri: null,
+        earnedTrophies: noTrophies,
+      },
+    ],
+  };
+  const svg = renderCard(data, resolveTheme(), "full");
+  assert.ok(svg.includes("ELDEN RING"));
+  assert.ok(svg.includes("&lt;Evil&gt; &amp; Game"));
+  assert.ok(svg.includes(">100%</text>"));
+  assert.ok(!svg.includes("<Evil>"));
+  assert.ok(svg.includes('width="467"'));
+});
+
+test("platinum games use the platinum bar color", () => {
+  const game = {
+    name: "Astro Bot",
+    progress: 100,
+    iconDataUri: null,
+    earnedTrophies: { platinum: 1, gold: 5, silver: 11, bronze: 26 },
+  };
+  const platinumBarFill = `rx="4" fill="${trophyColors.platinum}"`;
+
+  const platted = renderCard(
+    { ...baseData, recentGames: [game] },
+    resolveTheme(),
+    "full"
+  );
+  assert.ok(platted.includes(platinumBarFill));
+
+  const unplatted = renderCard(
+    { ...baseData, recentGames: [{ ...game, earnedTrophies: noTrophies }] },
+    resolveTheme(),
+    "full"
+  );
+  assert.ok(!unplatted.includes(platinumBarFill));
+});
+
+test("full variant without games renders at default height", () => {
+  const svg = renderCard(
+    { ...baseData, recentGames: [] },
+    resolveTheme(),
+    "full"
+  );
+  assert.ok(svg.includes('height="195"'));
+});
+
+test("default variant ignores recentGames data", () => {
+  const data: CardData = {
+    ...baseData,
+    recentGames: [
+      {
+        name: "ELDEN RING",
+        progress: 71,
+        iconDataUri: null,
+        earnedTrophies: noTrophies,
+      },
+    ],
+  };
+  const svg = renderCard(data, resolveTheme(), "default");
+  assert.ok(!svg.includes("ELDEN RING"));
+  assert.ok(svg.includes('height="195"'));
 });
 
 test("unknown theme falls back to default", () => {

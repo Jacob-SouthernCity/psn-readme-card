@@ -4,6 +4,7 @@ import {
   exchangeRefreshTokenForAuthTokens,
   getProfileFromAccountId,
   getProfileFromUserName,
+  getUserTitles,
   getUserTrophyProfileSummary,
   makeUniversalSearch,
 } from "psn-api";
@@ -17,20 +18,31 @@ export class PublicError extends Error {
   }
 }
 
+export interface TrophyCounts {
+  platinum: number;
+  gold: number;
+  silver: number;
+  bronze: number;
+}
+
+export interface RecentGame {
+  name: string;
+  progress: number;
+  iconDataUri: string | null;
+  earnedTrophies: TrophyCounts;
+}
+
 export interface CardData {
   onlineId: string;
   isPlus: boolean;
   trophyLevel: number;
   progress: number;
-  earnedTrophies: {
-    platinum: number;
-    gold: number;
-    silver: number;
-    bronze: number;
-  };
+  earnedTrophies: TrophyCounts;
   /** Inlined as a data URI — GitHub's image proxy (camo) won't load
    *  external references inside an SVG. Null if the fetch failed. */
   avatarDataUri: string | null;
+  /** Only populated for the full variant. */
+  recentGames?: RecentGame[];
 }
 
 interface CachedAuth {
@@ -152,14 +164,44 @@ async function resolveAccountId(
   }
 }
 
-export async function fetchCardData(psnId: string): Promise<CardData> {
+// "Recently played" approximated by most recently updated trophy titles —
+// that's what getUserTitles sorts by, and it includes per-game progress.
+async function fetchRecentGames(
+  auth: { accessToken: string },
+  accountId: string,
+  count: number
+): Promise<RecentGame[]> {
+  try {
+    const { trophyTitles } = await getUserTitles(auth, accountId, {
+      limit: count,
+    });
+    return Promise.all(
+      trophyTitles.map(async (title) => ({
+        name: title.trophyTitleName,
+        progress: title.progress,
+        iconDataUri: await fetchAvatarAsDataUri(title.trophyTitleIconUrl),
+        earnedTrophies: title.earnedTrophies,
+      }))
+    );
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCardData(
+  psnId: string,
+  gamesCount = 0
+): Promise<CardData> {
   const auth = { accessToken: await getAccessToken() };
 
   const accountId = await resolveAccountId(auth, psnId);
 
-  const [summary, profile] = await Promise.all([
+  const [summary, profile, recentGames] = await Promise.all([
     getUserTrophyProfileSummary(auth, accountId),
     getProfileFromAccountId(auth, accountId),
+    gamesCount > 0
+      ? fetchRecentGames(auth, accountId, gamesCount)
+      : Promise.resolve(undefined),
   ]);
 
   // Prefer the largest avatar Sony offers (sizes: s, m, l, xl).
@@ -175,5 +217,6 @@ export async function fetchCardData(psnId: string): Promise<CardData> {
     progress: Number(summary.progress) || 0,
     earnedTrophies: summary.earnedTrophies,
     avatarDataUri: avatarUrl ? await fetchAvatarAsDataUri(avatarUrl) : null,
+    recentGames,
   };
 }
