@@ -1,0 +1,24 @@
+{
+  "name": "psn-readme-card",
+  "version": "1.0.0",
+  "description": "Dynamically generated PlayStation Network trophy card for your GitHub README",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "preview": "tsx scripts/preview.ts",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "psn-api": "^2.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vercel/node": "^5.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
